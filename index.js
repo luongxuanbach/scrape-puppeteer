@@ -4,35 +4,37 @@
 // const browser = startBrowser
 // scrapeController(browser)
 
+const fs = require('fs');
 const puppeteer = require('puppeteer');
 
-(async () => {
-  // Launch the browser and open a new blank page
-  const browser = await puppeteer.launch({headless: false});
-  const page = await browser.newPage();
+async function run() {
+    const browser = await puppeteer.launch({headless: false});
+    const page = await browser.newPage();
+    await page.goto('https://www.traversymedia.com');
 
-  // Navigate the page to a URL
-  await page.goto('https://developer.chrome.com/');
 
-  // Set screen size
-  await page.setViewport({width: 1080, height: 1024});
+    // await page.screenshot({ path: 'example.png', fullPage: true});
+    // await page.pdf({ path: 'example.pdf', format: 'A4'});
 
-  // Type into search box
-  await page.type('.devsite-search-field', 'automate beyond recorder');
 
-  // Wait and click on first result
-  const searchResultSelector = '.devsite-result-item-link';
-  await page.waitForSelector(searchResultSelector);
-  await page.click(searchResultSelector);
+    // const html = await page.content();
+    const courses = await page.$$eval(('#cscourses .card'), (elements) => elements.map( e => ({
+        title: e.querySelector('.card-body h3').innerText,
+        level: e.querySelector('.card-body .level').innerText,
 
-  // Locate the full title with a unique string
-  const textSelector = await page.waitForSelector(
-    'text/Customize and automate'
-  );
-  const fullTitle = await textSelector?.evaluate(el => el.textContent);
+        // description: e.querySelector('.card-body span').innerText,
+        url: e.querySelector('.card-footer a').href,
+        thumbnail: e.querySelector('.cscourse-img').src,
+    })));
+    console.log(courses);
 
-  // Print the full title
-  console.log('The title of this blog post is "%s".', fullTitle);
+    //Save data to JSON file
+    fs.writeFile('courses.json', JSON.stringify(courses), (err) => {
+        if(err) throw err;
+        console.log('File saved!');
+    });
 
-  await browser.close();
-})();
+    await browser.close();
+}
+
+run();
